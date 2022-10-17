@@ -137,3 +137,15 @@ is_blocked boolean default false
 
 insert into test.availability (property_id, start_date, end_date, is_blocked) values (1, '2021-07-01', '2021-07-20', true);
 ```
+
+--- 
+
+# To Do
+1. [ ] Validate `flexible.type` and `flexible.months` in the request
+2. [ ] Write tests for request validation rules
+3. [ ] Setup DB Connection
+4. [ ] Query for accommodation availability.
+5. [ ] Can the validation code be made cleaner (e.g. using :pre blocks as recommended [here](https://clojure.org/guides/spec#_using_spec_for_validation))
+6. [ ] Can we handle exceptions the way they're handled in [this project](https://github.com/HUGameS/huey/blob/develop/src/huey/exceptions.clj)
+7. [ ] Clean error message in case of validation failure.
+8.[ ] Organise the project (see [this project](https://github.com/HUGameS/huey/blob/develop/src/huey/exceptions.clj) for inspiration)

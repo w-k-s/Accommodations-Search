@@ -141,7 +141,7 @@ insert into test.availability (property_id, start_date, end_date, is_blocked) va
 --- 
 
 # To Do
-1. [ ] Validate `flexible.type` and `flexible.months` in the request
+1. [x] Validate `flexible.type` and `flexible.months` in the request
 2. [ ] Write tests for request validation rules
 3. [ ] Setup DB Connection
 4. [ ] Query for accommodation availability.

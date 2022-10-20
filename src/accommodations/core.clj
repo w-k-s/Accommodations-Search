@@ -2,7 +2,7 @@
   (:gen-class)
   (:use [compojure.core :only [defroutes GET POST PUT DELETE]]
         [ring.util.response :only [response]]
-        [booking.service]
+        [accommodations.service]
         [ring.middleware.json :only [wrap-json-params wrap-json-response wrap-json-body]]
         [ring.middleware.keyword-params :only [wrap-keyword-params]] ;this will map json keys to keywords
         [ring.middleware.defaults :refer :all]

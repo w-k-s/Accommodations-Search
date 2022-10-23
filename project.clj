@@ -11,5 +11,6 @@
                  [ring/ring-json "0.5.1"]
                  [compojure "1.6.3"]
                  [prismatic/schema "1.4.1"]
+                 [phrase "0.3-alpha4"]
                  [http-kit "2.6.0"]]
   :repl-options {:init-ns accommodations.core})

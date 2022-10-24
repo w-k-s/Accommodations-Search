@@ -8,11 +8,22 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_DB: overlook
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v1
       - name: Install dependencies
         run: lein deps
-      - name: Start mongo
-        run: sudo docker run --rm -d -e POSTGRES_DB=overlook -p 5432:5432 postgres
       - name: Run tests
         run: lein test
+        env:
+          DB_URL: "jdbc:postgresql://postgres:5432/overlook"

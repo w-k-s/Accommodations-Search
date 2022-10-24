@@ -4,7 +4,8 @@
 
 
 (def datasource-options {:adapter "postgresql"
-                         :url     "jdbc:postgresql://localhost:5432/overlook"})
+                         :url     (or (System/getenv "DB_URL")
+                                      "jdbc:postgresql://localhost:5432/overlook")})
 
 (def config {:store                :database
              :migration-dir        "migrations/"

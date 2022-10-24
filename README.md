@@ -144,8 +144,9 @@ insert into test.availability (property_id, start_date, end_date, is_blocked) va
 1. [x] Validate `flexible.type` and `flexible.months` in the request
 2. [x] Write tests for request validation rules 
 3. [x] Setup CI/CD pipeline
-4. [ ] Setup DB Connection
-5. [ ] Query for accommodation availability.
-6. [ ] Can we handle exceptions the way they're handled in [this project](https://github.com/HUGameS/huey/blob/develop/src/huey/exceptions.clj)
-7. [ ] Clean error message in case of validation failure.
-8. [ ] Organise the project (see [this project](https://github.com/HUGameS/huey/blob/develop/src/huey/exceptions.clj) for inspiration)
+4. [x] Setup DB Connection
+5. [x] Apply migration
+6. [ ] Query for accommodation availability.
+7. [ ] Can we handle exceptions the way they're handled in [this project](https://github.com/HUGameS/huey/blob/develop/src/huey/exceptions.clj)
+8. [ ] Clean error message in case of validation failure.
+9. [ ] Organise the project (see [this project](https://github.com/HUGameS/huey/blob/develop/src/huey/exceptions.clj) for inspiration)

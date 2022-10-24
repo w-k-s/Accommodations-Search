@@ -12,5 +12,7 @@ jobs:
       - uses: actions/checkout@v1
       - name: Install dependencies
         run: lein deps
+      - name: Start mongo
+        run: sudo docker run --rm -d -e POSTGRES_DB=overlook -p 5432:5432 postgres
       - name: Run tests
         run: lein test

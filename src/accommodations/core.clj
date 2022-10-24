@@ -3,6 +3,7 @@
   (:use [compojure.core :only [defroutes GET POST PUT DELETE]]
         [ring.util.response :only [response]]
         [accommodations.service]
+        [accommodations.migrations :only [migrate]]
         [ring.middleware.json :only [wrap-json-params wrap-json-response wrap-json-body]]
         [ring.middleware.keyword-params :only [wrap-keyword-params]] ;this will map json keys to keywords
         [ring.middleware.defaults :refer :all]
@@ -33,5 +34,6 @@
       (wrap-json-response)))
 
 (defn -main [& args]
+  (migrate)
   (run-server app {:port 8080}
   (println (str "Running webserver at http:/127.0.0.1:" 8080 "/"))))

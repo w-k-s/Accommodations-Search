@@ -29,4 +29,4 @@ jobs:
       - name: Run tests
         run: lein test
         env:
-          DB_URL: "jdbc:postgresql://postgres:5432/overlook"
+          DB_URL: "jdbc:postgresql://localhost:5432/overlook"

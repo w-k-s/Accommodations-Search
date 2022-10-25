@@ -13,6 +13,7 @@ jobs:
         image: postgres
         env:
           POSTGRES_DB: overlook
+          POSTGRES_USER: jacktorrance
           POSTGRES_PASSWORD: postgres
         # Set health checks to wait until postgres has started
         options: >-
@@ -29,4 +30,4 @@ jobs:
       - name: Run tests
         run: lein test
         env:
-          DB_URL: "jdbc:postgresql://localhost:5432/overlook"
+          DB_URL: "jdbc:postgresql://jacktorrance:postgres@localhost:5432/overlook"

@@ -17,6 +17,7 @@
                  [expound "0.9.0"]
                  [http-kit "2.6.0"]
                  [migratus "1.4.4"]
-                 [org.postgresql/postgresql "42.5.0"]]
+                 [org.postgresql/postgresql "42.5.0"]
+                 [com.github.seancorfield/next.jdbc "1.2.796"]]
   :repl-options {:init-ns accommodations.core}
   :plugins [[migratus-lein "0.7.3"]])

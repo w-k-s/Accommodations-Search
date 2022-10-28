@@ -150,3 +150,12 @@ insert into test.availability (property_id, start_date, end_date, is_blocked) va
 7. [ ] Can we handle exceptions the way they're handled in [this project](https://github.com/HUGameS/huey/blob/develop/src/huey/exceptions.clj)
 8. [ ] Clean error message in case of validation failure.
 9. [ ] Organise the project (see [this project](https://github.com/HUGameS/huey/blob/develop/src/huey/exceptions.clj) for inspiration)
+
+---
+
+Sample Request:
+```shell
+curl --location --request POST 'http://localhost:8080/search' \
+--header 'Content-Type: application/json' \
+--data-raw '{"city":"Dubai","apartmentType":"1bdr","amenities":[], "flexible":{"type":"weekend", "months":["jun"]}}'
+```

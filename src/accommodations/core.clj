@@ -3,7 +3,8 @@
   (:use [compojure.core :only [defroutes GET POST PUT DELETE]]
         [ring.util.response :only [response]]
         [accommodations.service]
-        [accommodations.migrations :only [migrate]]
+        [db.migrate :as db]
+        [accommodations.db :refer [datasource]]
         [ring.middleware.json :only [wrap-json-params wrap-json-response wrap-json-body]]
         [ring.middleware.keyword-params :only [wrap-keyword-params]] ;this will map json keys to keywords
         [ring.middleware.defaults :refer :all]
@@ -19,11 +20,13 @@
         (case (-> e ex-data :type)
           :bad-request {:status 400 :body {:error (-> e ex-message)} })))))
 
+
+
 (defroutes all-routes
            (GET "/ping" [] (response {:data "ok"}))
            (POST "/search" {req :params}
-             (let [t (search-rooms-by-req req)]
-               {:status 201 :body {:id "t"}})))
+             (let [units (search-rooms-by-req req)]
+               {:status 201 :body {:units units}})))
 
 (def app
   (-> all-routes
@@ -34,6 +37,6 @@
       (wrap-json-response)))
 
 (defn -main [& args]
-  (migrate)
+  (db/migrate datasource)
   (run-server app {:port 8080}
   (println (str "Running webserver at http:/127.0.0.1:" 8080 "/"))))

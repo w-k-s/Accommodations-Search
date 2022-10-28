@@ -1,7 +1,10 @@
 (ns accommodations.service
   (:gen-class)
-  (:require [clojure.spec.alpha :as s]
-            [expound.alpha :as expound]))
+  (:require [accommodations.db :refer [datasource]]
+            [clojure.spec.alpha :as s]
+            [expound.alpha :as expound]
+            [next.jdbc :as jdbc]
+            [next.jdbc.result-set :as rs]))
 
 (def date-regex #"^[0-9]{4}\-[0-9]{2}-[0-9]{2}$$")
 (s/def :search/city string?)
@@ -49,6 +52,15 @@
     (when-not (s/valid? :search/params params)
       (throw (ex-info (expound/expound-str :search/params params) {:type :bad-request})))))
 
+;; next.jdbc, by default returns each field qualified with the table name
+;; e.g. the field `name` in the table person, would be returned as `person/name`.
+;; The line below removes the qualifier i.e. `person/name` -> `name`
+(def ds-opts (jdbc/with-options datasource {:builder-fn rs/as-unqualified-lower-maps}))
+(defn find-units
+  [req]
+  (jdbc/execute! ds-opts ["select * from test.availability"] {:return-keys true}))
+
 (defn search-rooms-by-req
   [req]
-  (validate-search-params-req req))
+  (validate-search-params-req req)
+  (find-units req))

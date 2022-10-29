@@ -1,14 +1,14 @@
 (ns accommodations.core
   (:gen-class)
-  (:use [compojure.core :only [defroutes GET POST PUT DELETE]]
-        [ring.util.response :only [response]]
+  (:use [accommodations.db :refer [datasource]]
         [accommodations.service]
+        [compojure.core :only [DELETE GET POST PUT defroutes]]
         [db.migrate :as db]
-        [accommodations.db :refer [datasource]]
-        [ring.middleware.json :only [wrap-json-params wrap-json-response wrap-json-body]]
-        [ring.middleware.keyword-params :only [wrap-keyword-params]] ;this will map json keys to keywords
+        [org.httpkit.server]
         [ring.middleware.defaults :refer :all]
-        org.httpkit.server)
+        [ring.middleware.json :only [wrap-json-body wrap-json-params wrap-json-response]] ;this will map json keys to keywords
+        [ring.middleware.keyword-params :only [wrap-keyword-params]]
+        [ring.util.response :only [response]])
   (:import (clojure.lang ExceptionInfo)))
 
 (defn wrap-fallback-exception

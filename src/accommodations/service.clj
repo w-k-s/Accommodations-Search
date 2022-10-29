@@ -3,8 +3,15 @@
   (:require [accommodations.db :refer [datasource]]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
+            [honey.sql]
             [next.jdbc :as jdbc]
-            [next.jdbc.result-set :as rs]))
+            [next.jdbc.result-set :as rs]
+            [next.jdbc.sql :as sql]))
+
+;; next.jdbc, by default returns each field qualified with the table name
+;; e.g. the field `name` in the table person, would be returned as `person/name`.
+;; The line below removes the qualifier i.e. `person/name` -> `name`
+(def ds-opts (jdbc/with-options datasource {:builder-fn rs/as-unqualified-lower-maps}))
 
 (def date-regex #"^[0-9]{4}\-[0-9]{2}-[0-9]{2}$$")
 (s/def :search/city string?)
@@ -52,13 +59,19 @@
     (when-not (s/valid? :search/params params)
       (throw (ex-info (expound/expound-str :search/params params) {:type :bad-request})))))
 
-;; next.jdbc, by default returns each field qualified with the table name
-;; e.g. the field `name` in the table person, would be returned as `person/name`.
-;; The line below removes the qualifier i.e. `person/name` -> `name`
-(def ds-opts (jdbc/with-options datasource {:builder-fn rs/as-unqualified-lower-maps}))
 (defn find-units
   [req]
-  (jdbc/execute! ds-opts ["select * from test.availability"] {:return-keys true}))
+  (let [amenities (if (not-empty (:amenities req)) (clojure.string/join "," (:amenities req)) nil) ; To do, use honeysql's array syntax for psql
+        selection (conj [:and [:= [:cast :b.city :text] (:city req)]]
+                          (when (not-empty (:amenities req)) [:raw (format "p.amenities && '{%s}'" amenities )]))
+        sqlmap {:select  [:p.id :p.title :p.property-type :b.city :a.start-date :a.end-date]
+                :from    [[:test.property :p]]
+                :join-by [:left [[:test.building :b] [:= :b.id :p.building-id]]
+                          :left [[:test.availability :a] [:= :a.property-id :p.id]]]
+                :where   selection}
+        query (honey.sql/format sqlmap {:pretty true})]
+    (println "query " query)
+  (sql/query ds-opts query {:return-keys true})))
 
 (defn search-rooms-by-req
   [req]

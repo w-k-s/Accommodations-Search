@@ -56,7 +56,7 @@ The API should be efficient to accommodate for many concurrent requests.
 
 The result returned from the API would look something like this:
 
-```
+```json
 {
     "match": [], 
     "alternative": [], 
@@ -183,30 +183,36 @@ Based on the description, this is my understanding of the requirements:
 1. The query that will solve this problem is:
 
     ```postgresql
-    SELECT p.*, b.city, a.start_date, a.end_date, g.day::date AS date FROM test.property p
+    SELECT p.id AS property_id, b.id AS building_id, b.city, p.amenities, g.day::date  AS available_on FROM test.property p
     LEFT JOIN test.building b ON b.id = p.building_id
     LEFT JOIN test.availability a ON a.property_id = p.id
-    CROSS  JOIN generate_series(timestamp '2021-07-01', timestamp '2021-07-30',interval '1 day') AS g(day)
+    CROSS  JOIN generate_series(timestamp '2021-07-01', timestamp '2021-07-30', interval  '1 day') AS g(day)
     WHERE b.city = 'Dubai'
-    AND p.property_type = '1bdr'
+    AND p.property_type IN ('1bdr','2bdr','3bdr')
     AND p.amenities @> '{WiFi}'
     AND (SELECT x.is_blocked FROM test.availability x WHERE g.day >= x.start_date AND g.day <= x.end_date AND x.property_id = p.id) IS not true
     AND (SELECT y.id FROM test.reservation y WHERE g.day >= y.check_in AND g.day <= y.check_out AND y.property_id = p.id) IS NULL;
     ```
     This will display matching apartments on the day that they are available:
 
-   |id |building_id|title |property_type|amenities     |city |start_date|end_date  |date      |
-   |---|-----------|------|-------------|--------------|-----|----------|----------|----------|
-   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-21|
-   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-22|
-   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-23|
-   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-24|
-   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-25|
-   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-26|
-   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-27|
-   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-28|
-   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-29|
-   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-30|
+    |property_id|building_id|city  |amenities            |available_on|
+    |-----------|-----------|------|---------------------|------------|
+    |1          |1          |Dubai |{WiFi,Parking}       |2021-07-21  |
+    |1          |1          |Dubai |{WiFi,Parking}       |2021-07-22  |
+    |1          |1          |Dubai |{WiFi,Parking}       |2021-07-23  |
+    |1          |1          |Dubai |{WiFi,Parking}       |2021-07-24  |
+    |1          |1          |Dubai |{WiFi,Parking}       |2021-07-25  |
+    |1          |1          |Dubai |{WiFi,Parking}       |2021-07-26  |
+    |1          |1          |Dubai |{WiFi,Parking}       |2021-07-27  |
+    |1          |1          |Dubai |{WiFi,Parking}       |2021-07-28  |
+    |1          |1          |Dubai |{WiFi,Parking}       |2021-07-29  |
+    |1          |1          |Dubai |{WiFi,Parking}       |2021-07-30  |
+    |2          |1          |Dubai |{WiFi,"Tennis table"}|2021-07-01  |
+    |2          |1          |Dubai |{WiFi,"Tennis table"}|2021-07-02  |
+    |2          |1          |Dubai |{WiFi,"Tennis table"}|2021-07-03  |
+    |2          |1          |Dubai |{WiFi,"Tennis table"}|2021-07-04  |
+    |2          |1          |Dubai |{WiFi,"Tennis table"}|2021-07-05  |
+    |2          |1          |Dubai |{WiFi,"Tennis table"}|2021-07-06  |
 
     From this, we just need to iterate over the results and decide if they're a `match`, `alternate` or `other`. 
     The tricky part for me is how do I implement this using HoneySQL :)

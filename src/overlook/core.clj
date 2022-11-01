@@ -1,7 +1,7 @@
-(ns accommodations.core
+(ns overlook.core
   (:gen-class)
-  (:use [accommodations.db :refer [datasource]]
-        [accommodations.service]
+  (:use [overlook.db :refer [datasource]]
+        [overlook.units.search]
         [compojure.core :only [DELETE GET POST PUT defroutes]]
         [db.migrate :as db]
         [org.httpkit.server]

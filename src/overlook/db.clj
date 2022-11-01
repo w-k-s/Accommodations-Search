@@ -1,4 +1,4 @@
-(ns accommodations.db
+(ns overlook.db
   (:use [hikari-cp.core :as hk]))
 
 (def datasource-options {:adapter "postgresql"

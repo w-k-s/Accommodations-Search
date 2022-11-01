@@ -1,6 +1,6 @@
-(ns accommodations.service
+(ns overlook.units.search
   (:gen-class)
-  (:require [accommodations.db :refer [datasource]]
+  (:require [overlook.db :refer [datasource]]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
             [honey.sql]
@@ -59,11 +59,20 @@
     (when-not (s/valid? :search/params params)
       (throw (ex-info (expound/expound-str :search/params params) {:type :bad-request})))))
 
+(defn get-matching-property-types
+  [apartment-type]
+  (case apartment-type
+    "1bdr" ["1bdr" "2bdr" "3bdr"]
+    "2bdr" ["2bdr" "3bdr"]
+    "3bdr" ["3bdr"]))
+
 (defn find-units
   [req]
-  (let [amenities (if (not-empty (:amenities req)) (clojure.string/join "," (:amenities req)) nil) ; To do, use honeysql's array syntax for psql
+  (let [amenities (if (not-empty (:amenities req)) (clojure.string/join "," (:amenities req)) nil)
+        property-types (get-matching-property-types (:apartmentType req))
         selection (conj [:and [:= [:cast :b.city :text] (:city req)]]
-                          (when (not-empty (:amenities req)) [:raw (format "p.amenities && '{%s}'" amenities )]))
+                          (when (not-empty (:amenities req)) [:raw (format "p.amenities @> '{%s}'" amenities )])
+                          [:in [:cast :p.property-type :text] property-types])
         sqlmap {:select  [:p.id :p.title :p.property-type :b.city :a.start-date :a.end-date]
                 :from    [[:test.property :p]]
                 :join-by [:left [[:test.building :b] [:= :b.id :p.building-id]]

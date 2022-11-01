@@ -1,4 +1,4 @@
-(ns db.migrate
+(ns overlook.db.migrate
   (:require [migratus.core :as migratus]))
 
 (defn load-config

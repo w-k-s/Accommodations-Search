@@ -138,6 +138,31 @@ is_blocked boolean default false
 insert into test.availability (property_id, start_date, end_date, is_blocked) values (1, '2021-07-01', '2021-07-20', true);
 ```
 
+---
+
+# Requirements
+
+Based on the description, this is my understanding of the requirements:
+
+**Searching Rules**
+
+1. A unit must always be located in the city specified in the search request
+2. An `apartmentType` must be equal to or bigger than the one specified in the search request.
+3. A unit must have all the amenities specified in the search request.
+4. If the search request type is `date`, the results must also search for 3 days before and 3 days after the ones specified in the search request.
+5. If the search request type is `flexible`, then the availability periods depends on the flexiblity type:
+   1. If `weekend`, results must list units available for all weekends in the given months.
+   2. If `week`, results must list units available for 7 days at any time during the given month
+   3. If `month`, results must list units available for all days in the given month.
+
+**Matching Rules**
+
+| Category    | Matches City | Specified Amenities Available | Matching Apartment Type | Available within specified dates |
+|-------------|--------------|-------------------------------|-------------------------|----------------------------------|
+| Match       |       ✓      |               ✓               |            ✓            |                 ✓                |
+| Alternative |       ✓      |               ✓               |            ✓            |                 ✗                |
+| Other       |       ✓      |               ✓               |            ✗            |                 ✓                |
+
 --- 
 
 # To Do
@@ -153,9 +178,42 @@ insert into test.availability (property_id, start_date, end_date, is_blocked) va
 
 ---
 
-Sample Request:
-```shell
-curl --location --request POST 'http://localhost:8080/search' \
---header 'Content-Type: application/json' \
---data-raw '{"city":"Dubai","apartmentType":"1bdr","amenities":[], "flexible":{"type":"weekend", "months":["jun"]}}'
-```
+# Notes
+
+1. The query that will solve this problem is:
+
+    ```postgresql
+    SELECT p.*, b.city, a.start_date, a.end_date, g.day::date AS date FROM test.property p
+    LEFT JOIN test.building b ON b.id = p.building_id
+    LEFT JOIN test.availability a ON a.property_id = p.id
+    CROSS  JOIN generate_series(timestamp '2021-07-01', timestamp '2021-07-30',interval '1 day') AS g(day)
+    WHERE b.city = 'Dubai'
+    AND p.property_type = '1bdr'
+    AND p.amenities @> '{WiFi}'
+    AND (SELECT x.is_blocked FROM test.availability x WHERE g.day >= x.start_date AND g.day <= x.end_date AND x.property_id = p.id) IS not true
+    AND (SELECT y.id FROM test.reservation y WHERE g.day >= y.check_in AND g.day <= y.check_out AND y.property_id = p.id) IS NULL;
+    ```
+    This will display matching apartments on the day that they are available:
+
+   |id |building_id|title |property_type|amenities     |city |start_date|end_date  |date      |
+   |---|-----------|------|-------------|--------------|-----|----------|----------|----------|
+   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-21|
+   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-22|
+   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-23|
+   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-24|
+   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-25|
+   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-26|
+   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-27|
+   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-28|
+   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-29|
+   |1  |1          |Unit 1|1bdr         |{WiFi,Parking}|Dubai|2021-07-01|2021-07-20|2021-07-30|
+
+    From this, we just need to iterate over the results and decide if they're a `match`, `alternate` or `other`. 
+    The tricky part for me is how do I implement this using HoneySQL :)
+2. Sample Request:
+
+    ```shell
+    curl --location --request POST 'http://localhost:8080/search' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{"city":"Dubai","apartmentType":"1bdr","amenities":[], "flexible":{"type":"weekend", "months":["jun"]}}'
+    ```

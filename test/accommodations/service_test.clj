@@ -1,6 +1,6 @@
 (ns accommodations.service-test
   (:require [clojure.test :refer :all])
-  (:require [accommodations.service :refer [validate-search-params-req]])
+  (:require [overlook.units.search :refer [validate-search-params-req]])
   (:import (clojure.lang ExceptionInfo)))
 
 (deftest search-params-validation

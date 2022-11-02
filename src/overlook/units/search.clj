@@ -4,6 +4,7 @@
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
             [honey.sql]
+            [honey.sql.pg-ops]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]
             [next.jdbc.sql :as sql]))
@@ -20,7 +21,7 @@
 (s/def :search/apartment-type #{"1bdr" "2bdr" "3bdr"})
 (expound/defmsg :search/apartment-type "Apartment type can be either 1bdr, 2bdr or 3bdr")
 
-(s/def :search/amenity  #{"WiFi", "Pool", "Garden", "Tennis table", "Parking"})
+(s/def :search/amenity #{"WiFi", "Pool", "Garden", "Tennis table", "Parking"})
 (expound/defmsg :search/amenity "Unknown amenity")
 (s/def :search/amenities (s/* :search/amenity))
 
@@ -36,7 +37,7 @@
 (s/def :search/type #{"weekend", "week", "month"})
 (expound/defmsg :search/type "Type must be `week`,`weekend` or `month`")
 
-(s/def :search/month  #{"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"})
+(s/def :search/month #{"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"})
 (expound/defmsg :search/month "Invalid month")
 
 (s/def :search/months (s/+ :search/month))
@@ -45,7 +46,7 @@
 (s/def :search/flexible (s/keys :req [:search/type :search/months]))
 (s/def :search/params (s/keys :req [:search/city :search/apartment-type :search/amenities (or :search/date :search/flexible)]))
 
-(defn validate-search-params-req
+(defn- validate-search-params-req
   [req]
   (let [params (conj #:search{:city           (:city req)
                               :apartment-type (:apartmentType req)
@@ -59,28 +60,48 @@
     (when-not (s/valid? :search/params params)
       (throw (ex-info (expound/expound-str :search/params params) {:type :bad-request})))))
 
-(defn get-matching-property-types
+(defn- get-matching-property-types
   [apartment-type]
   (case apartment-type
     "1bdr" ["1bdr" "2bdr" "3bdr"]
     "2bdr" ["2bdr" "3bdr"]
     "3bdr" ["3bdr"]))
 
-(defn find-units
+;; TODO
+(defn- calculate-search-period
   [req]
-  (let [amenities (if (not-empty (:amenities req)) (clojure.string/join "," (:amenities req)) nil)
-        property-types (get-matching-property-types (:apartmentType req))
-        selection (conj [:and [:= [:cast :b.city :text] (:city req)]]
-                          (when (not-empty (:amenities req)) [:raw (format "p.amenities @> '{%s}'" amenities )])
-                          [:in [:cast :p.property-type :text] property-types])
-        sqlmap {:select  [:p.id :p.title :p.property-type :b.city :a.start-date :a.end-date]
-                :from    [[:test.property :p]]
-                :join-by [:left [[:test.building :b] [:= :b.id :p.building-id]]
-                          :left [[:test.availability :a] [:= :a.property-id :p.id]]]
-                :where   selection}
+  ["2021-07-01" "2021-07-30"])
+
+(defn- find-units
+  [req]
+  (let [[start-date end-date] (calculate-search-period req)
+        city-selection [:= [:cast :b.city :text] (:city req)]
+        amenities-selection (when (not-empty (:amenities req)) [honey.sql.pg-ops/at> :p.amenities [:array (map (fn [a] [:cast a :test.amenities_enum]) (:amenities req))]])
+        property-type-selection [:in [:cast :p.property-type :text] (get-matching-property-types (:apartmentType req))]
+        availability-selection [:is-not {:select [:x.is_blocked]
+                                          :from [[:test.availability :x]]
+                                          :where [:and [:>= :g.day :x.start_date]
+                                                  [:<= :g.day :x.end_date]
+                                                  [:= :p.id :x.property_id]]} :true ]
+        reservation-selection [:is {:select [:r.id]
+                                         :from [[:test.reservation :r]]
+                                         :where [:and [:>= :g.day :r.check_in]
+                                                 [:<= :g.day :r.check_out]
+                                                 [:= :p.id :r.property_id]]} nil ]
+        selection (conj [:and city-selection]
+                        property-type-selection
+                        amenities-selection
+                        availability-selection
+                        reservation-selection)
+        sqlmap {:select     [:p.id :p.title :p.property-type :b.city :g.day]
+                :from       [[:test.property :p]]
+                :join-by    [:left [[:test.building :b] [:= :b.id :p.building-id]]
+                             :left [[:test.availability :a] [:= :a.property-id :p.id]]]
+                :cross-join [[[:raw (format "generate_series(timestamp '%s', timestamp '%s', interval  '1 day') AS g(day)" start-date end-date)]]]
+                :where      selection}
         query (honey.sql/format sqlmap {:pretty true})]
     (println "query " query)
-  (sql/query ds-opts query {:return-keys true})))
+    (sql/query ds-opts query {:return-keys true})))
 
 (defn search-rooms-by-req
   [req]

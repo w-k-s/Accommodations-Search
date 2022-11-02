@@ -3,7 +3,7 @@
   (:use [overlook.db :refer [datasource]]
         [overlook.units.search]
         [compojure.core :only [DELETE GET POST PUT defroutes]]
-        [db.migrate :as db]
+        [overlook.db.migrate :as db]
         [org.httpkit.server]
         [ring.middleware.defaults :refer :all]
         [ring.middleware.json :only [wrap-json-body wrap-json-params wrap-json-response]] ;this will map json keys to keywords
